@@ -1,4 +1,7 @@
-// from http://code.google.com/p/mycodespot/wiki/DirectPMUCodeGCC
+/*
+ * Source: http://code.google.com/p/mycodespot/wiki/DirectPMUCodeGCC
+ *
+ */
 
 /*------------------------------------------------------------
 Performance Monitor Block       

@@ -1,18 +1,26 @@
--include Rules.make
+KERNEL_SRC = /Volumes/WorkSpace/n1/codeaurora_msm/
+KERNEL_BUILD = /Volumes/WorkSpace/n1/out/KERNEL
+TOOLCHAIN_PATH = /Volumes/WorkSpace/n1/prebuilt/darwin-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
 
-TARGET = peemuperf.ko
-obj-m = peemuperf.o
+TARGET = armperf.ko
+obj-m = armperf.o
 
-peemuperf-objs = peemuperf_entry.o v7_pmu.o
+armperf-objs = armperf_entry.o v7_pmu.o
 
 MAKE_ENV = ARCH=arm CROSS_COMPILE=$(TOOLCHAIN_PATH)
+ifneq ($(KERNEL_BUILD),)
+	MAKE_ENV += O=$(KERNEL_BUILD)
+endif
 
-.PHONY: release
+.PHONY: release clean
 
 default: release
 
 release:
-	make -C $(LINUXKERNEL_INSTALL_DIR) M=`pwd` $(MAKE_ENV) modules
+	make -C $(KERNEL_SRC) M=`pwd` $(MAKE_ENV) modules
 
+clean:
+	rm -f $(armperf-objs)
 
-
+distclean: clean
+	rm -f $(TARGET)
