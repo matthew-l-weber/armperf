@@ -22,6 +22,10 @@ default: release
 release:
 	make -C $(KERNEL_SRC) M=`pwd` $(MAKE_ENV) modules
 
+android_install: release
+	adb remount
+	adb push $(TARGET) /system/lib/modules
+
 clean:
 	rm -f Module.symvers modules.order
 	rm -f armperf.mod.* armperf.o
