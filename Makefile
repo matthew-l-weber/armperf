@@ -1,14 +1,16 @@
 
-KERNEL_SRC ?= /Volumes/WorkSpace/n1/codeaurora_msm/
-KERNEL_BUILD ?= /Volumes/WorkSpace/n1/out/KERNEL
-TOOLCHAIN_PATH ?= /Volumes/WorkSpace/n1/prebuilt/darwin-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
+KERNEL_SRC ?= kernel
+CROSS_COMPILE ?= arm-eabi-
+
+# Comment this out if you build your kernel in-tree
+KERNEL_BUILD ?= out/KERNEL
 
 TARGET = armperf.ko
 obj-m = armperf.o
 
 armperf-objs = armperf_entry.o v7_pmu.o
 
-MAKE_ENV = ARCH=arm CROSS_COMPILE=$(TOOLCHAIN_PATH)
+MAKE_ENV = ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE)
 ifneq ($(KERNEL_BUILD),)
 	MAKE_ENV += O=$(KERNEL_BUILD)
 endif
