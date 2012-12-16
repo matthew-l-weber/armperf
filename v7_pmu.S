@@ -1,5 +1,10 @@
 /*
- * Source: http://code.google.com/p/mycodespot/wiki/DirectPMUCodeGCC
+ * v7_pmu.S
+ * Originally written by ARM
+ *
+ * Modified to be GCC friendly by Jeffery Eastlack, available here:
+ * http://code.google.com/p/mycodespot/wiki/DirectPMUCodeGCC
+ *
  *
  */
 

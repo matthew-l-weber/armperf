@@ -1,4 +1,12 @@
-// from http://code.google.com/p/mycodespot/wiki/DirectPMUCodeGCC
+/*
+ * v7_pmu.h
+ * Originally written by ARM
+ *
+ * Modified to be GCC friendly by Jeffery Eastlack, available here:
+ * http://code.google.com/p/mycodespot/wiki/DirectPMUCodeGCC
+ *
+ *
+ */
 
 // ------------------------------------------------------------
 // PMU for Cortex-A/R (v7-A/R)
