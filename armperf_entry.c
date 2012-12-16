@@ -94,10 +94,11 @@ static void pmu_stop(void)
 #endif
 
 	if (evdebug) {
+		printk("%u\t%u\t", cycle_count, overflow);
+
 		for (i = 0;i < counters;i ++)
 			printk("%u\t", read_pmn(i));
 
-		printk("%u\t%u\t", overflow, cycle_count);
 	}
 }
 
@@ -110,6 +111,7 @@ static int armperf_thread(void* data)
 {
 	if (evdebug == 1)
 		printk("Entering thread loop...\n");
+
 	while (1) {
 		if (kthread_should_stop())
 			break;
@@ -119,6 +121,7 @@ static int armperf_thread(void* data)
 		msleep(evdelay);
 		pmu_stop();
 	}
+
 	if (evdebug == 1)
 		printk("Exiting thread...\n");
 	return 0;
