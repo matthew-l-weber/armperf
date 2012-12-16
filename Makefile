@@ -24,7 +24,12 @@ release:
 
 android_install: release
 	adb remount
-	adb push $(TARGET) /system/lib/modules
+	adb shell "mkdir /system/lib/modules"
+	adb push $(TARGET) /system/lib/modules/
+
+android_measure: android_install
+	adb push android_measure.sh /data/local/
+	adb shell "/data/local/android_measure.sh" | tee perf.log
 
 clean:
 	rm -f Module.symvers modules.order
