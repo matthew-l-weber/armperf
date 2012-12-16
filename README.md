@@ -1,13 +1,15 @@
-peemuperf
+armperf
 =========
 
-Linux Performance Monitoring using PMU and TI EMIF data - ARM Cycles, Cache misses, Real DDR bandwidth, and more ...
+Performance Monitoring using ARM PMU extensions - ARM Cycles, Cache misses, and more ...
 
 Usage
 =========
---> insmod peemuperf.ko evdelay=500 evlist=1,68,3,4 evdebug=1 emifcnt=1 emiflist=2,3
+--> insmod armperf.ko evdelay=500 evlist=1,68,3,4 evdebug=1
 
---> rmmod peemuperf.ko
+--> rmmod armperf.ko
+
+NOTE: on many version of Android the insmod utility will _not_ pass module parameters!
 
 Parameters:
 
@@ -15,33 +17,25 @@ evdelay = Delay between successive reading of samples from event counters (milli
 
 evlist = Array of decimal values of event IDs to be monitored (refer ARM TRM). If not specified, first four of below are used:
 
-   1 ==> Instruction fetch that causes a refill at the lowest level of instruction or unified cache
+	1 ==> Instruction fetch that causes a refill at the lowest level of instruction or unified cache
 
-   68 ==> Any cacheable miss in the L2 cache
+	8 ==> Instructions architecturally executed (retired)
 
-   3 ==> Data read or write operation that causes a refill at the lowest level of data or unified cache
+	3 ==> Data read or write operation that causes a refill at the lowest level of data or unified cache
 
-   4 ==> Data read or write operation that causes a cache access at the lowest level of data or unified cache
+	4 ==> Data read or write operation that causes a cache access at the lowest level of data or unified cache
 
-   67 ==> All cache accesses
+	67 ==> All cache accesses
 
-   0x56 ==> Increment for every cycle that no instructions are available for issue
+	68 ==> Any cacheable miss in the L2 cache
+
+	0x56 ==> Increment for every cycle that no instructions are available for issue
+
+NOTE: not all events are available on all processors!
 
 (for other valid values, refer to Cortex-A TRM)
 
 evdebug = 0 (default - no messages from kernel module) / 1 (event counters are printed out - warning: will flood the console)
-
-emifcnt = 0 (default - no usage of EMIF DDR monitor) / 1 (use EMIF DDR monitor). For more details, refer to EMIF documentation for example at www.ti.com/lit/ug/sprugv8c/sprugv8c.pdf
-
-emiflist = Array of decimal values of EMIF event IDs to be monitored. If not specified, ID 2 (READs), ID 3(WRITES) are used.
-
-   0x4 ==> Total DDR clock cycles Command FIFO is full
-
-   0x5 ==> Total DDR clock cycles Write Data FIFO is full
-
-   0xA ==> Total DDR clock cycles for which DDR i/f was transferring data
-
-(for other valid values, refer EMIF documentation)
 
 Output
 =======
@@ -54,6 +48,8 @@ An example console output when evdebug = 1, is below (CPU MHz = 720 MHz, samplin
 [  103.156036] 49902    2322703 169203  20224376        0       11362827       
 [  104.186035] 48974    2320928 168278  20198781        0       11362768       
 
+NOTE: (this formatting is old, the new output is: cycle-count, overflow, counter-0, counter-1, ...)
+
 
 The Counter values, Overflow indication, Cycle count, EMIF read and write count is provided.
 
@@ -61,29 +57,31 @@ NOTE: PMU Cycle count is configured to be divided by 64, compared to CPU clock
 
 Usage of proc entry
 ===================
-peemuperf exposes event information (same information as above) via proc entry, and can be used by userland applications
+armperf exposes event information (same information as above) via proc entry, and can be used by userland applications
 
-cat /proc/peemuperf
+cat /proc/armperf
 
-root@am335x-evm:/media/sda1# cat /proc/peemuperf  
-PMU.counter[0]= 54363                                                           
-PMU.counter[1]= 2339356                                                         
-PMU.counter[2]= 172534                                                          
-PMU.counter[3]= 20313519                                                        
-PMU.overflow= 0                                                                 
-PMU.CCNT= 11362787                                                              
-EMIF.readcount= 1705266985                                                      
-EMIF.writecount= 2316069476                                                   
+root@android# cat /proc/armperf
+PMU.counter[0]= 54363
+PMU.counter[1]= 2339356
+PMU.counter[2]= 172534
+PMU.counter[3]= 20313519
+PMU.overflow= 0
+PMU.CCNT= 11362787
 
 Validation
 =========
-Tested on kernel 3.2, with gcc4.5 toolchain.
+Tested on kernel 3.2, with gcc4.5 toolchain. (by prabindh)
+
+Tested ond kernels 2.6.29 - 3.2 using gcc toolchains provided by Google in the "prebuilt" Android repo.
 
 Validated on AM335x (OMAP3/Beagle variants will work) - for Cortex-A8. Cortex-A9 has larger counter list, and will also work
+
+Also validated on Nexus One and Nexus S.
 
 Limitations
 ===========
 PMU interrupts not enabled and not supported, so watchout for overflow flags manually
 
 ===
-prabindh@yahoo.com
+jeremya@cs.columbia.edu
