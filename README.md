@@ -3,6 +3,14 @@ armperf
 
 Performance Monitoring using ARM PMU extensions - ARM Cycles, Cache misses, and more ...
 
+Compile
+=========
+To compile this module, you will need a pointer to your correctly configured kernel source directory, a toolchain location, and optionally a kernel build location (to fit with Android compilation). Here is the list of variables which can be set either in your environment, or directly in the Makefile:
+
+	KERNEL_SRC    ==> path to kernel code
+	KERNEL_BUILD  ==> build location of the kernel (set to NULL if kernel is build in-tree)
+	CROSS_COMPILE ==> cross-compilation toolchain prefix
+
 Usage
 =========
 --> insmod armperf.ko evdelay=500 evlist=1,68,3,4 evdebug=1
