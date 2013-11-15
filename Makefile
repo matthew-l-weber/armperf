@@ -1,9 +1,8 @@
-
-KERNEL_SRC ?= kernel
+KERNEL_DIR ?= kernel
 CROSS_COMPILE ?= arm-eabi-
 
 # Comment this out if you build your kernel in-tree
-KERNEL_BUILD ?= out/KERNEL
+#KERNEL_BUILD ?= out/KERNEL
 
 TARGET = armperf.ko
 obj-m = armperf.o
@@ -17,10 +16,13 @@ endif
 
 .PHONY: release clean
 
-default: release
+#default: release
 
 release:
-	make -C $(KERNEL_SRC) M=`pwd` $(MAKE_ENV) modules
+	make -C $(KERNEL_DIR) M=`pwd` $(MAKE_ENV) modules
+
+modules_install:
+	make -C $(KERNEL_DIR) SUBDIRS=`pwd` modules_install
 
 android_install: release
 	adb remount
