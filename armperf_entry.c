@@ -16,6 +16,8 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
+#include <linux/io.h>     //ioread, iowrite
+#include <linux/ioport.h> //request_mem_region
 
 #include "v7_pmu.h"
 
@@ -26,8 +28,8 @@ static void pmu_stop(void);
 static int __pmu_init(void);
 static void __exit armperf_exit(void);
 
-#ifdef DDR_PERFMON
 #if defined(CONFIG_ARCH_ZYNQ)
+#define DDR_PERFMON 1
 #define DDRCNT_MAP_LEN       0x2C0
 #define DDRCNT_MAP_BASE_ADDR 0xF8006000
 
@@ -35,11 +37,11 @@ static void __exit armperf_exit(void);
  * AXI IDs - Sec 5.1.6, Table 5-3, page 98 Zynq_TRM (ug585)
  *
  * CPUs, AXI_ACP via L2 M1 port
- *        13’b011xxxxxxxx00
+ *        13â€™b011xxxxxxxx00
  * CPUs, AXI_ACP via L2 M0 port
- *        13’b100xxxxxxxx00
+ *        13â€™b100xxxxxxxx00
  * AHB masters
- *        13’b00100000xxx01
+ *        13â€™b00100000xxx01
  ******************************************************************
  * DDRI Block Diagram 
  *     Sec 10.2.2, Figure 10-3, page 211 Zynq_TRM (ug585)
@@ -53,7 +55,9 @@ static int ddr_writeOffset = 0x280;  //Port0
 //#define DDR_PERF_CONFIG() 
 
 #endif
+
 #if defined(CONFIG_ARCH_SOCFPGA)
+#define DDR_PERFMON 1
 #define DDRCNT_MAP_LEN ????
 #define DDRCNT_MAP_BASE_ADDR ????
 static int ddr_readOffset  = ???;
@@ -64,6 +68,7 @@ static int ddr_writeOffset = ???;
 #endif
 
 #if defined(CONFIG_ARCH_OMAP2PLUS)
+#define DDR_PERFMON 1
 #define DDRCNT_MAP_LEN       0x200
 #define DDRCNT_MAP_BASE_ADDR 0x4c000000
 static int ddr_readOffset  = 0x84;
@@ -76,14 +81,17 @@ static int ddr_ctlOffset   = 0x88;
 	regval2 = (regval2 << 16) & 0xFFFF0000; \
 	regval1 = 0x8000; \
 	regval1 |= (ddrlist[1] & 0xF); \
-	iowrite32((regval2|regval1), ddrcnt_reg_base+ddr_ctlOffset); 
+	iowrite32((regval2|regval1),(void*)(ddrcnt_reg_base+ddr_ctlOffset)); 
+
 #endif
 
+#ifdef DDR_PERFMON
+static struct resource *ddrcnt_regs;
 static int ddrcnt = 0;
 static int ddr_readcount = 0;
 static int ddr_writecount = 0;
 static resource_size_t ddrcnt_reg_base;
-static int ddr[2] = {1, 2};  //1 - read, 2 - write
+static int ddrlist[2] = {1, 2};  //1 - read, 2 - write
 static int ddrlist_count = 2;
 #endif
 
@@ -140,14 +148,14 @@ static void pmu_stop(void)
 
 	cycle_count = read_ccnt(); /*  Read CCNT */
 	overflow = read_flags();   /* Check for overflow flag */
-
+#ifdef DDR_PERFMON
 	if(ddrcnt == 1)
 	{
                 //Now read the READ+WRITE monitoring counters
-                 ddr_writecount = ioread32(ddrcnt_reg_base + ddr_writeOffset);
-                 ddr_readcount = ioread32(ddrcnt_reg_base + ddr_readOffset);
+                 ddr_writecount = ioread32((void*)(ddrcnt_reg_base + ddr_writeOffset));
+                 ddr_readcount = ioread32((void*)(ddrcnt_reg_base + ddr_readOffset));
         }
-
+#endif
 #if defined(CONFIG_PROC_FS)
 	spin_lock(&pblock);
 
@@ -315,7 +323,7 @@ module_exit(armperf_exit);
 module_param(evdelay, int, 100);
 module_param(evdebug, int, 0);
 module_param_array(evlist, int, &evlist_count, 0000);
-#ifdef DDR_PERMON
+#ifdef DDR_PERFMON
 module_param(ddrcnt, int, 0);
 module_param_array(ddrlist, int, &ddrlist_count, 0000);
 #endif
@@ -326,4 +334,3 @@ MODULE_AUTHOR("Prabindh Sundareson <prabu@ti.com>");
 MODULE_AUTHOR("Jeremy C. Andrus <jeremy@jeremya.com>");
 MODULE_AUTHOR("Matthew L. Weber <mlweber1@rockwellcollins.com>");
 MODULE_LICENSE("GPL v2");
-
