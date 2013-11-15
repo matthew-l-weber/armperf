@@ -26,6 +26,67 @@ static void pmu_stop(void);
 static int __pmu_init(void);
 static void __exit armperf_exit(void);
 
+#ifdef DDR_PERFMON
+#if defined(CONFIG_ARCH_ZYNQ)
+#define DDRCNT_MAP_LEN       0x2C0
+#define DDRCNT_MAP_BASE_ADDR 0xF8006000
+
+/******************************************************************
+ * AXI IDs - Sec 5.1.6, Table 5-3, page 98 Zynq_TRM (ug585)
+ *
+ * CPUs, AXI_ACP via L2 M1 port
+ *        13’b011xxxxxxxx00
+ * CPUs, AXI_ACP via L2 M0 port
+ *        13’b100xxxxxxxx00
+ * AHB masters
+ *        13’b00100000xxx01
+ ******************************************************************
+ * DDRI Block Diagram 
+ *     Sec 10.2.2, Figure 10-3, page 211 Zynq_TRM (ug585)
+ * Port 2/3 - AXI_HP to DDR Interconnect
+ * Port 1 - Other Masters Interconnect
+ * Port 0 - CPUs/ACP via L2
+ ******************************************************************/
+static int ddr_readOffset  = 0x270;  //Port0
+static int ddr_writeOffset = 0x280;  //Port0
+
+//#define DDR_PERF_CONFIG() 
+
+#endif
+#if defined(CONFIG_ARCH_SOCFPGA)
+#define DDRCNT_MAP_LEN ????
+#define DDRCNT_MAP_BASE_ADDR ????
+static int ddr_readOffset  = ???;
+static int ddr_writeOffset = ???;
+
+//#define DDR_PERF_CONFIG() 
+
+#endif
+
+#if defined(CONFIG_ARCH_OMAP2PLUS)
+#define DDRCNT_MAP_LEN       0x200
+#define DDRCNT_MAP_BASE_ADDR 0x4c000000
+static int ddr_readOffset  = 0x84;
+static int ddr_writeOffset = 0x80;
+static int ddr_ctlOffset   = 0x88;
+
+#define DDR_PERF_CONFIG() \
+	regval2 = 0x8000; \
+	regval2 |= (ddrlist[0] & 0xF); \
+	regval2 = (regval2 << 16) & 0xFFFF0000; \
+	regval1 = 0x8000; \
+	regval1 |= (ddrlist[1] & 0xF); \
+	iowrite32((regval2|regval1), ddrcnt_reg_base+ddr_ctlOffset); 
+#endif
+
+static int ddrcnt = 0;
+static int ddr_readcount = 0;
+static int ddr_writecount = 0;
+static resource_size_t ddrcnt_reg_base;
+static int ddr[2] = {1, 2};  //1 - read, 2 - write
+static int ddrlist_count = 2;
+#endif
+
 #if defined(CONFIG_PROC_FS)
 #include <linux/proc_fs.h>
 #define MAX_PROC_BUF_LEN 1000
@@ -80,6 +141,13 @@ static void pmu_stop(void)
 	cycle_count = read_ccnt(); /*  Read CCNT */
 	overflow = read_flags();   /* Check for overflow flag */
 
+	if(ddrcnt == 1)
+	{
+                //Now read the READ+WRITE monitoring counters
+                 ddr_writecount = ioread32(ddrcnt_reg_base + ddr_writeOffset);
+                 ddr_readcount = ioread32(ddrcnt_reg_base + ddr_readOffset);
+        }
+
 #if defined(CONFIG_PROC_FS)
 	spin_lock(&pblock);
 
@@ -90,6 +158,11 @@ static void pmu_stop(void)
 	currProcBufLen += sprintf(proc_buf + currProcBufLen,
 				  "PMU.overflow= %u\nPMU.CCNT= %u\n",
 				  overflow,cycle_count);
+#ifdef DDR_PERFMON				  
+	currProcBufLen += sprintf(proc_buf + currProcBufLen,
+				  "DDR.readcount= %u\nDDR.writecount= %u\n",
+				  ddr_readcount, ddr_writecount);
+#endif
 	spin_unlock(&pblock);
 #endif
 
@@ -169,6 +242,9 @@ static struct task_struct *armperf_kthread;
 
 static int __pmu_init()
 {
+#ifdef DDR_PERFMON
+	u32 regval1, regval2;
+#endif
 	available_evcount = getPMN();
 	printk(MODULE_NAME ": evdelay=%d, available_events: %d "
 	       "Event inputs: %d %d %d %d\n",
@@ -177,7 +253,19 @@ static int __pmu_init()
 
 	armperf_kthread = kthread_run(armperf_thread, (void *)0,
 				      "armperf_sampler");
-	
+#ifdef DDR_PERFMON	
+        if(ddrcnt == 1)
+        {
+                ddrcnt_regs = request_mem_region(DDRCNT_MAP_BASE_ADDR, DDRCNT_MAP_LEN, "ddrcnt");
+                if (!ddrcnt_regs)
+                        return 1;
+                ddrcnt_reg_base = (resource_size_t)ioremap_nocache(ddrcnt_regs->start, DDRCNT_MAP_LEN);
+                if (!ddrcnt_reg_base)
+                        return 1;
+                //Now enable monitoring counters
+                DDR_PERF_CONFIG();
+        }	
+#endif	
 	return 0;
 }
 
@@ -207,6 +295,15 @@ static void __exit armperf_exit()
 #if defined(CONFIG_PROC_FS)
 	remove_proc_entry(MODULE_NAME, NULL);
 #endif
+
+#ifdef DDR_PERFMON
+        if(ddrcnt == 1)
+        {
+                release_mem_region(DDRCNT_MAP_BASE_ADDR, DDRCNT_MAP_LEN);
+                iounmap((void __iomem *)ddrcnt_reg_base);
+        }
+#endif
+
 }
 module_exit(armperf_exit);
 
@@ -218,10 +315,15 @@ module_exit(armperf_exit);
 module_param(evdelay, int, 100);
 module_param(evdebug, int, 0);
 module_param_array(evlist, int, &evlist_count, 0000);
+#ifdef DDR_PERMON
+module_param(ddrcnt, int, 0);
+module_param_array(ddrlist, int, &ddrlist_count, 0000);
+#endif
 
 MODULE_DESCRIPTION(MODULE_NAME ": PMU driver (e.g. insmod armperf.ko "
 		   "evdelay=500 evlist=1,68,3,4 evdebug=0");
 MODULE_AUTHOR("Prabindh Sundareson <prabu@ti.com>");
 MODULE_AUTHOR("Jeremy C. Andrus <jeremy@jeremya.com>");
+MODULE_AUTHOR("Matthew L. Weber <mlweber1@rockwellcollins.com>");
 MODULE_LICENSE("GPL v2");
 
