@@ -58,12 +58,12 @@ static int ddr_writeOffset = 0x280;  //Port0
 
 #if defined(CONFIG_ARCH_SOCFPGA)
 #define DDR_PERFMON 1
-#define DDRCNT_MAP_LEN ????
-#define DDRCNT_MAP_BASE_ADDR ????
-static int ddr_readOffset  = ???;
-static int ddr_writeOffset = ???;
+#define DDRCNT_MAP_LEN       0x2bad
+#define DDRCNT_MAP_BASE_ADDR 0x2bad
+static int ddr_readOffset  = 0x2bad;
+static int ddr_writeOffset = 0x2bad;
 
-//#define DDR_PERF_CONFIG() 
+#define DDR_PERF_CONFIG() 
 
 #endif
 
