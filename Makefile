@@ -9,7 +9,7 @@ obj-m = armperf.o
 
 armperf-objs = armperf_entry.o v7_pmu.o
 
-MAKE_ENV = ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE)
+MAKE_ENV = ARCH=arm CROSS_COMPILE="$(CROSS_COMPILE)"
 ifneq ($(KERNEL_BUILD),)
 	MAKE_ENV += O=$(KERNEL_BUILD)
 endif
