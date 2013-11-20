@@ -52,7 +52,7 @@ static void __exit armperf_exit(void);
 static int ddr_readOffset  = 0x270;  //Port0
 static int ddr_writeOffset = 0x280;  //Port0
 
-//#define DDR_PERF_CONFIG() 
+#define DDR_PERF_CONFIG() 
 
 #endif
 
